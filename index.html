@@ -1,56 +1,34 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard Penyerapan Anggaran</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
     body {
-      background-color: #f9f9f9;
-      font-family: 'Arial', sans-serif;
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', sans-serif;
     }
-
     h1 {
       text-align: center;
-      margin-top: 40px;
+      margin-top: 30px;
       color: #28a745;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      font-weight: bold;
     }
-
-    .container {
-      max-width: 95%;
-      margin: auto;
+    .chart-container {
+      margin: 40px auto;
+      width: 100%;
+      max-width: 1000px;
+    }
+    table {
       margin-top: 30px;
     }
-
-    .table-responsive {
-      margin-top: 40px;
-    }
-
-    .chart-container {
-      margin-top: 50px;
-    }
-
-    canvas {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
-    }
-
-    .table tfoot tr {
+    tfoot tr td {
       font-weight: bold;
-      background-color: #e9f7ef;
-    }
-
-    footer {
-      margin-top: 60px;
-      text-align: center;
-      color: #555;
-      font-size: 0.95rem;
+      background-color: #e2fbe2;
     }
   </style>
 </head>
@@ -58,47 +36,41 @@
   <div class="container">
     <h1>Dashboard Penyerapan Anggaran</h1>
 
-    <!-- Tabel Realisasi -->
+    <!-- TABEL REALISASI -->
     <div class="table-responsive">
-      <table class="table table-bordered table-hover table-striped align-middle text-center">
-        <thead class="table-success">
+      <table class="table table-bordered table-striped">
+        <thead class="table-success text-center">
           <tr>
             <th>Bidang</th>
             <th>Pagu Anggaran</th>
             <th>Realisasi Anggaran</th>
             <th>Sisa Anggaran</th>
-            <th>Progres</th>
+            <th>Progres (%)</th>
           </tr>
         </thead>
         <tbody id="data-table-body"></tbody>
-        <tfoot>
+        <tfoot class="text-center">
           <tr>
             <td>Total</td>
             <td id="total-pagu"></td>
             <td id="total-realisasi"></td>
             <td id="total-sisa"></td>
-            <td>-</td>
+            <td id="total-progres"></td>
           </tr>
         </tfoot>
       </table>
     </div>
 
-    <!-- Grafik -->
+    <!-- GRAFIK -->
     <div class="chart-container">
-      <canvas id="anggaranChart" height="100"></canvas>
+      <canvas id="anggaranChart"></canvas>
     </div>
-
     <div class="chart-container">
-      <canvas id="progresChart" height="100"></canvas>
+      <canvas id="progresChart"></canvas>
     </div>
-
     <div class="chart-container">
-      <canvas id="paguRealisasiChart" height="100"></canvas>
+      <canvas id="paguRealisasiChart"></canvas>
     </div>
-
-    <footer>
-      <p>&copy; 2025 - Dashboard Penyerapan Anggaran | <a href="https://github.com/marshalljacky431/DISTANKP-NGADA-2025" target="_blank">GitHub Repository</a></p>
-    </footer>
   </div>
 
   <script>
@@ -116,9 +88,6 @@
           const data = results.data.filter(row => row["Bidang"]);
           updateTable(data);
           updateChart(data);
-        },
-        error: function (error) {
-          console.error('Gagal membaca CSV:', error);
         }
       });
     }
@@ -128,32 +97,39 @@
       let totalPagu = 0;
       let totalRealisasi = 0;
       let totalSisa = 0;
+      let totalProgres = 0;
+      let jumlahBidang = 0;
 
       const rowsHTML = data.map(row => {
         const pagu = parseFloat(row["Pagu Anggaran"]);
         const realisasi = parseFloat(row["Realisasi Anggaran"]);
         const sisa = parseFloat(row["Sisa Anggaran"]);
+        const progres = parseFloat(row["Progres"].replace('%', ''));
 
         totalPagu += pagu;
         totalRealisasi += realisasi;
         totalSisa += sisa;
+        totalProgres += progres;
+        jumlahBidang++;
 
         return `
-          <tr>
-            <td>${row["Bidang"]}</td>
+          <tr class="text-end">
+            <td class="text-start">${row["Bidang"]}</td>
             <td>${formatRupiah(pagu)}</td>
             <td>${formatRupiah(realisasi)}</td>
             <td>${formatRupiah(sisa)}</td>
-            <td>${row["Progres"]}</td>
-          </tr>
-        `;
+            <td>${progres.toFixed(2)}%</td>
+          </tr>`;
       }).join('');
 
       tableBody.innerHTML = rowsHTML;
 
+      const rataRataProgres = (totalProgres / jumlahBidang).toFixed(2) + '%';
+
       document.getElementById("total-pagu").innerText = formatRupiah(totalPagu);
       document.getElementById("total-realisasi").innerText = formatRupiah(totalRealisasi);
       document.getElementById("total-sisa").innerText = formatRupiah(totalSisa);
+      document.getElementById("total-progres").innerText = rataRataProgres;
     }
 
     function updateChart(data) {
@@ -162,7 +138,7 @@
       const realisasi = data.map(row => parseFloat(row["Realisasi Anggaran"]));
       const progres = data.map(row => parseFloat(row["Progres"].replace('%', '')));
 
-      const optionsUang = {
+      const uangOptions = {
         responsive: true,
         scales: {
           y: {
@@ -182,7 +158,7 @@
         }
       };
 
-      const optionsPersen = {
+      const persenOptions = {
         responsive: true,
         scales: {
           y: {
@@ -212,7 +188,7 @@
             backgroundColor: 'rgba(54, 162, 235, 0.7)'
           }]
         },
-        options: optionsUang
+        options: uangOptions
       });
 
       new Chart(document.getElementById("progresChart"), {
@@ -222,10 +198,10 @@
           datasets: [{
             label: 'Progres Realisasi (%)',
             data: progres,
-            backgroundColor: 'rgba(255, 206, 86, 0.7)'
+            backgroundColor: 'rgba(75, 192, 192, 0.8)'
           }]
         },
-        options: optionsPersen
+        options: persenOptions
       });
 
       new Chart(document.getElementById("paguRealisasiChart"), {
@@ -234,18 +210,18 @@
           labels,
           datasets: [
             {
-              label: 'Pagu',
+              label: 'Pagu Anggaran',
               data: pagu,
-              backgroundColor: 'rgba(75, 192, 192, 0.7)'
+              backgroundColor: 'rgba(255, 159, 64, 0.7)'
             },
             {
-              label: 'Realisasi',
+              label: 'Realisasi Anggaran',
               data: realisasi,
-              backgroundColor: 'rgba(255, 99, 132, 0.7)'
+              backgroundColor: 'rgba(40, 167, 69, 0.7)'
             }
           ]
         },
-        options: optionsUang
+        options: uangOptions
       });
     }
 
